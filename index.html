@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TFI Live Redesign Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Archivo:wght@600;800&display=swap">
+<style>
+/* Layout: one phone-sized app column; full-bleed on a phone, framed device on desktop.
+   Single high-contrast light look on purpose: the app is read outdoors in daylight. */
+:root{
+  --ink:#0f1e1b;        /* text */
+  --paper:#ffffff;      /* app surface */
+  --ground:#e4ebe8;     /* desk background behind the device */
+  --line:#c9d4d0;
+  --muted:#52625e;
+  --brand:#0b6e4f;      /* transit green accent */
+  --brand-ink:#ffffff;
+  --go:#0b6e4f; --go-bg:#e2f3ec;
+  --hurry:#8a4b00; --hurry-bg:#fff0d6;
+  --skip:#5a5f6b; --skip-bg:#eceef2;
+  --focus:#1a56db;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"Archivo","Arial Narrow",system-ui,sans-serif;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--ground);color:var(--ink);font-family:var(--f-body);font-size:16px;
+  padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px))}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+
+.device{position:relative;width:100%;height:100%;max-width:430px;margin:0 auto;background:var(--paper);
+  display:flex;flex-direction:column;overflow:hidden}
+@media (min-width:600px) and (min-height:760px){
+  body{display:grid;place-items:center;padding-block:24px}
+  .device{height:min(860px,calc(100vh - 48px));border-radius:36px;border:10px solid #1b2422;box-shadow:0 20px 50px rgba(15,30,27,.25)}
+}
+.statusbar{display:flex;justify-content:space-between;padding:10px 20px 4px;font-size:13px;font-weight:700;color:var(--muted)}
+.screen{flex:1;overflow-y:auto;padding:4px 16px 16px;display:flex;flex-direction:column;gap:14px}
+.screen[hidden]{display:none!important}
+h1{font-size:24px;margin:4px 0 0;line-height:1.15;text-wrap:balance}
+h2{font-size:15px;margin:6px 0 0;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.sub{color:var(--muted);margin:0;font-size:15px}
+.topbar{display:flex;align-items:center;gap:10px;min-height:44px}
+.back{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px;margin-left:-8px}
+.back:hover{background:var(--skip-bg)}
+
+/* Now screen */
+.from{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.from b{font-size:20px}
+.clock{font-size:20px;font-weight:800;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{width:100%;border:2px solid var(--line);border-radius:18px;padding:14px 16px;display:grid;
+  grid-template-columns:auto 1fr auto;gap:4px 14px;align-items:center;background:var(--paper)}
+.card:hover{border-color:var(--brand)}
+.card.first{border-color:var(--ink)}
+.route{grid-row:span 2;min-width:64px;height:64px;border-radius:14px;background:var(--brand);color:var(--brand-ink);
+  display:grid;place-items:center;font-family:var(--f-num);font-weight:800;font-size:30px;padding:0 8px}
+.dest{font-weight:700;font-size:17px;line-height:1.2;min-width:0}
+.mins{grid-row:span 2;text-align:right;line-height:1}
+.mins .n{font-family:var(--f-num);font-weight:800;font-size:40px;font-variant-numeric:tabular-nums}
+.mins .u{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.meta{font-size:14px;color:var(--muted)}
+.status{grid-column:1/-1;display:flex;align-items:center;gap:8px;border-radius:10px;padding:8px 10px;font-weight:700;font-size:15px;margin-top:6px}
+.status .ic{width:22px;height:22px;flex:none}
+.st-go{background:var(--go-bg);color:var(--go)}
+.st-hurry{background:var(--hurry-bg);color:var(--hurry)}
+.st-skip{background:var(--skip-bg);color:var(--skip)}
+.then{grid-column:1/-1;font-size:14px;color:var(--muted)}
+.linkrow{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.link{color:var(--brand);font-weight:700;text-decoration:underline;text-underline-offset:3px;min-height:44px;display:inline-flex;align-items:center}
+
+/* bottom nav: two modes only */
+.nav{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line);background:var(--paper);
+  padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0 4px;font-weight:700;color:var(--muted);min-height:56px}
+.nav button[aria-current="page"]{color:var(--brand)}
+.nav svg{width:24px;height:24px}
+
+/* Plan */
+.big{width:100%;min-height:72px;border-radius:18px;border:2px solid var(--line);padding:14px 18px;display:flex;align-items:center;gap:14px;font-size:19px;font-weight:700}
+.big:hover{border-color:var(--brand)}
+.big small{display:block;font-size:14px;font-weight:400;color:var(--muted)}
+.big .ico{width:40px;height:40px;border-radius:12px;background:var(--go-bg);color:var(--brand);display:grid;place-items:center;flex:none}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-weight:700;font-size:14px}
+.field input,.field select{font:inherit;font-size:17px;border:2px solid var(--line);border-radius:12px;padding:12px;min-height:50px;background:var(--paper);color:var(--ink);width:100%}
+.sugg{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.sugg button{padding:12px 14px;min-height:48px;border-bottom:1px solid var(--line)}
+.sugg button:last-child{border-bottom:0}
+.sugg button:hover{background:var(--go-bg)}
+.more{border:1px dashed var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:2px solid var(--line);border-radius:999px;padding:8px 14px;min-height:44px;font-weight:700}
+.chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.primary{background:var(--brand);color:var(--brand-ink);border-radius:14px;min-height:54px;padding:0 18px;font-weight:700;font-size:18px;text-align:center;width:100%}
+.result{border:2px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.result .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.legs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px}
+.leg{border-radius:8px;padding:3px 8px;font-weight:700;background:var(--skip-bg)}
+.leg.bus{background:var(--brand);color:var(--brand-ink)}
+.leg.luas{background:#7a1f3d;color:#fff}
+
+/* detail */
+.mini{border-radius:16px;border:1px solid var(--line);overflow:hidden}
+.mini svg{display:block;width:100%;height:auto}
+.deps{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:14px}
+.deps li{display:flex;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line);font-size:17px}
+.deps li:last-child{border-bottom:0}
+details{border:1px solid var(--line);border-radius:14px;padding:4px 14px}
+summary{min-height:44px;display:flex;align-items:center;font-weight:700;cursor:pointer}
+.tt{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 10px;padding:6px 0 12px;font-size:15px}
+
+/* onboarding */
+.routepick{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.rp{border:2px solid var(--line);border-radius:14px;padding:12px;display:flex;gap:10px;align-items:center;min-height:64px}
+.rp .route{grid-row:auto;min-width:44px;height:44px;font-size:20px;border-radius:10px}
+.rp[aria-pressed="true"]{border-color:var(--brand);background:var(--go-bg)}
+.rp span{font-size:14px;line-height:1.2}
+
+/* sheet */
+.scrim{position:absolute;inset:0;background:rgba(15,30,27,.45);display:flex;align-items:flex-end;z-index:20}
+.sheet{background:var(--paper);width:100%;border-radius:22px 22px 0 0;padding:18px 16px max(18px,env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
+
+/* facilitator panel */
+.fac{position:absolute;inset:0;background:var(--paper);z-index:30;display:flex;flex-direction:column;gap:10px;padding:14px 16px;overflow:auto;font-size:15px}
+.fac table{border-collapse:collapse;width:100%;font-size:13px}
+.fac th,.fac td{border-bottom:1px solid var(--line);padding:5px 4px;text-align:left}
+.fac .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:2px solid var(--ink);border-radius:10px;padding:8px 12px;font-weight:700;min-height:42px}
+.btn.on{background:var(--ink);color:var(--paper)}
+.rec{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:8px;height:8px;border-radius:50%;background:#c62828;z-index:25}
+.toast{position:absolute;left:16px;right:16px;bottom:84px;background:var(--ink);color:var(--paper);border-radius:12px;padding:12px 14px;font-weight:700;z-index:40}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.6}}}
+</style>
+</head>
+<body>
+<div class="device" id="device">
+  <div class="statusbar"><span class="num" id="sbTime">11:05</span><span>DEMO DATA</span></div>
+  <div class="rec" id="rec" hidden></div>
+
+  <!-- First launch: one question -->
+  <section class="screen" id="s-onboard" hidden>
+    <h1>Which routes do you usually take?</h1>
+    <p class="sub">Pick the buses you catch near DCU Glasnevin. We'll show these first every time you open the app. You can change them later.</p>
+    <div class="routepick" id="routePick"></div>
+    <button class="primary" id="obDone" style="margin-top:auto">Show my departures</button>
+  </section>
+
+  <!-- NOW -->
+  <section class="screen" id="s-now" hidden>
+    <div class="from">
+      <div><span class="sub">From</span><br><b id="originName">DCU Glasnevin</b></div>
+      <span class="clock num" id="clock" title="Facilitator: press and hold">11:05</span>
+    </div>
+    <div class="cards" id="cards"></div>
+    <div class="linkrow">
+      <button class="link" id="changeOrigin">Not here? Change</button>
+      <button class="link" id="openMap">Show stops on map</button>
+    </div>
+  </section>
+
+  <!-- ROUTE DETAIL -->
+  <section class="screen" id="s-detail" hidden>
+    <div class="topbar"><button class="back" data-back aria-label="Back">&#8592;</button><h1 id="dTitle">Route</h1></div>
+    <p class="sub" id="dStop"></p>
+    <div class="mini" id="dMap"></div>
+    <h2>Next departures from this stop</h2>
+    <ul class="deps" id="dDeps"></ul>
+    <details id="dTT"><summary>Full timetable (weekdays)</summary><div class="tt num" id="dTTbody"></div></details>
+  </section>
+
+  <!-- MAP -->
+  <section class="screen" id="s-map" hidden>
+    <div class="topbar"><button class="back" data-back aria-label="Back">&#8592;</button><h1>Stops for your routes</h1></div>
+    <p class="sub">Within a 5-minute walk. Nearest stop highlighted.</p>
+    <div class="mini" id="bigMap"></div>
+    <div class="linkrow"><button class="link" id="toggleAll">Show all stops</button></div>
+    <div class="cards" id="mapList"></div>
+  </section>
+
+  <!-- PLAN -->
+  <section class="screen" id="s-plan" hidden>
+    <h1>Where to?</h1>
+    <button class="big" data-dest="home"><span class="ico" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span><span>Home<small>Drumcondra</small></span></button>
+    <button class="big" data-dest="campus"><span class="ico" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2 9 2 12 0v-5"/></svg></span><span>Campus<small>DCU Glasnevin</small></span></button>
+    <button class="big" data-dest="else"><span class="ico" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></span><span>Somewhere else<small>Search a place</small></span></button>
+  </section>
+
+  <!-- SOMEWHERE ELSE -->
+  <section class="screen" id="s-search" hidden>
+    <div class="topbar"><button class="back" data-back aria-label="Back">&#8592;</button><h1>Somewhere else</h1></div>
+    <div class="field"><label for="fFrom">From</label><input id="fFrom" value="Current location (DCU Glasnevin)"></div>
+    <div class="field"><label for="fTo">To</label><input id="fTo" placeholder="Search a place or stop" autocomplete="off"></div>
+    <div class="sugg" id="sugg" hidden></div>
+    <button class="link" id="moreBtn" aria-expanded="false">More options</button>
+    <div class="more" id="more" hidden>
+      <div class="field"><label>Travel by</label>
+        <div class="chips" id="modes"></div></div>
+      <div class="field"><label for="fWhen">When</label>
+        <select id="fWhen"><option value="now">Leave now</option><option value="after">Leave after…</option><option value="by">Arrive by…</option></select></div>
+      <div class="field" id="timeWrap" hidden><label for="fTime">Time</label><input id="fTime" type="time" value="14:00"></div>
+    </div>
+    <button class="primary" id="go">Plan journey</button>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="screen" id="s-results" hidden>
+    <div class="topbar"><button class="back" data-back aria-label="Back">&#8592;</button><h1 id="rTitle">Results</h1></div>
+    <p class="sub" id="rSub"></p>
+    <div class="cards" id="rList"></div>
+  </section>
+
+  <nav class="nav" id="nav" hidden>
+    <button data-tab="now" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Now</button>
+    <button data-tab="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Plan</button>
+  </nav>
+
+  <div class="scrim" id="originSheet" hidden>
+    <div class="sheet" role="dialog" aria-label="Change starting point">
+      <h1 style="font-size:20px">Where are you now?</h1>
+      <div id="originOpts" style="display:flex;flex-direction:column;gap:8px"></div>
+      <button class="link" id="closeSheet">Cancel</button>
+    </div>
+  </div>
+
+  <div class="fac" id="fac" hidden>
+    <div class="row" style="justify-content:space-between"><b style="font-size:18px">Facilitator panel</b><button class="btn" id="facClose">Close</button></div>
+    <div class="row"><label for="pid">Participant</label><input id="pid" style="font:inherit;border:2px solid var(--line);border-radius:8px;padding:6px;width:80px" value="P1"></div>
+    <div class="row"><label for="task">Task</label>
+      <select id="task" style="font:inherit;border:2px solid var(--line);border-radius:8px;padding:6px">
+        <option value="T1">T1 Catch next bus to city centre</option>
+        <option value="T2">T2 Compare next two departures</option>
+        <option value="T3">T3 Plan trip to Heuston by 14:00</option>
+      </select></div>
+    <div class="row"><button class="btn" id="startTask">Start task (closes panel)</button><button class="btn" id="stopTask">Stop task</button></div>
+    <div class="row">Outcome
+      <select id="outcome" style="font:inherit;border:2px solid var(--line);border-radius:8px;padding:6px"><option>success</option><option>assisted</option><option>fail</option></select>
+      Errors <button class="btn" id="errMinus">−</button><span class="num" id="errN">0</span><button class="btn" id="errPlus">+</button></div>
+    <div class="row"><button class="btn" id="saveRow">Save result</button><span id="live" class="num"></span></div>
+    <div style="overflow-x:auto"><table><thead><tr><th>ID</th><th>Task</th><th>Time s</th><th>Taps</th><th>Err</th><th>Outcome</th></tr></thead><tbody id="resBody"></tbody></table></div>
+    <div class="row"><button class="btn" id="copyCsv">Copy CSV</button><button class="btn" id="resetApp">Reset app (new participant)</button><button class="btn" id="clearRes">Clear results</button></div>
+    <textarea id="csvOut" readonly hidden style="width:100%;height:110px;font-family:monospace;font-size:12px"></textarea>
+    <p class="sub" style="font-size:13px">Open this panel by pressing and holding the clock on the Now screen for 1 second, or pressing F on a keyboard. Taps on the screen are counted while a task is running. Results stay in this browser only, so copy the CSV after each session.</p>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+// ---------- scripted demo data (not live TFI data) ----------
+const T0 = 11*3600 + 5*60;            // simulated clock starts 11:05:00
+let simStart = Date.now();
+const now = () => T0 + Math.floor((Date.now()-simStart)/1000);
+const hhmm = s => { s = ((s%86400)+86400)%86400; const h=Math.floor(s/3600), m=Math.floor(s/60)%60; return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0"); };
+
+const STOPS = {
+  A:{name:"Collins Ave, DCU main gate", walk:2, x:120, y:150},
+  B:{name:"Ballymun Rd, Albert College", walk:5, x:60, y:70},
+  C:{name:"Ballymun Rd, Hampstead", walk:7, x:52, y:200},
+  D:{name:"Collins Ave, Larkhill", walk:6, x:230, y:160}
+};
+// route -> stop, destination, first departure offset (s from T0), headway (s)
+const ROUTES = {
+  "11":{stop:"A", dest:"City Centre (O'Connell St)", first:4*60+20, every:15*60, near:true},
+  "13":{stop:"B", dest:"City Centre (Merrion Sq)", first:3*60+40, every:12*60, near:true},
+  "4": {stop:"B", dest:"City Centre (O'Connell St)", first:9*60, every:20*60, near:true},
+  "9": {stop:"C", dest:"Charlestown", first:6*60, every:15*60, near:true},
+  "104":{stop:"D", dest:"Clontarf Rd", first:12*60, every:30*60, near:true},
+  "16":{stop:"B", dest:"Rathfarnham", first:14*60, every:15*60, near:true}
+};
+const ALL_STOPS_FAKE = 38; // decoy markers for "Show all stops"
+
+const deps = (r, from, n) => { const R = ROUTES[r]; const out=[]; let t = T0 + R.first; while (t < from) t += R.every; for(let i=0;i<n;i++){ out.push(t); t += R.every; } return out; };
+
+// ---------- state ----------
+const store = {
+  get(k,d){ try{ const v = localStorage.getItem("tfiproto:"+k); return v==null?d:JSON.parse(v);}catch(e){return d;} },
+  set(k,v){ try{ localStorage.setItem("tfiproto:"+k, JSON.stringify(v)); }catch(e){} }
+};
+let myRoutes = store.get("routes", null);
+let origin = "DCU Glasnevin";
+let history = [];
+let current = null;
+let showAll = false;
+const $ = id => document.getElementById(id);
+
+function show(id, push=true){
+  document.querySelectorAll(".screen").forEach(s => s.hidden = true);
+  $(id).hidden = false;
+  if (push && current && current!==id) history.push(current);
+  current = id;
+  $("nav").hidden = (id==="s-onboard");
+  const tab = (id==="s-plan"||id==="s-search"||id==="s-results") ? "plan" : "now";
+  document.querySelectorAll(".nav button").forEach(b => b.setAttribute("aria-current", b.dataset.tab===tab ? "page":"false"));
+  $(id).scrollTop = 0;
+  render();
+}
+document.querySelectorAll("[data-back]").forEach(b => b.addEventListener("click", () => { const p = history.pop() || "s-now"; show(p,false); }));
+document.querySelectorAll(".nav button").forEach(b => b.addEventListener("click", () => { history=[]; show(b.dataset.tab==="now"?"s-now":"s-plan", false); }));
+
+// ---------- icons for status (shape + text + colour) ----------
+const IC = {
+  go:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg>',
+  hurry:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>',
+  skip:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
+};
+function statusFor(t, walk){
+  const slack = Math.floor((t - now())/60) - walk;
+  if (slack < 0) return {k:"skip", txt:"Next one is better"};
+  if (slack <= 2) return {k:"hurry", txt:"Leave now"};
+  return {k:"go", txt:"You have time · leave in "+(slack-1 <= 0 ? "1" : slack-1)+" min"};
+}
+const minsTo = t => Math.max(0, Math.floor((t-now())/60));
+
+// ---------- renderers ----------
+function renderNow(){
+  $("originName").textContent = origin;
+  const items = (myRoutes||[]).map(r => {
+    const S = STOPS[ROUTES[r].stop]; const ts = deps(r, now(), 3);
+    return {r, S, ts, st: statusFor(ts[0], S.walk)};
+  });
+  // catchable first, then by departure
+  items.sort((a,b) => (a.st.k==="skip") - (b.st.k==="skip") || a.ts[0]-b.ts[0]);
+  const top = items.slice(0,3);
+  $("cards").innerHTML = top.length ? top.map((it,i) => `
+    <button class="card ${i===0?"first":""}" data-route="${it.r}" aria-label="Route ${it.r} to ${ROUTES[it.r].dest}, ${minsTo(it.ts[0])} minutes, ${it.st.txt}">
+      <span class="route">${it.r}</span>
+      <span class="dest">${ROUTES[it.r].dest}</span>
+      <span class="mins"><span class="n">${minsTo(it.ts[0])}</span><span class="u">min</span></span>
+      <span class="meta">${it.S.name} · ${it.S.walk} min walk</span>
+      <span class="status st-${it.st.k}">${IC[it.st.k]}${it.st.txt}</span>
+      <span class="then">Then <b class="num">${minsTo(it.ts[1])}</b> and <b class="num">${minsTo(it.ts[2])}</b> min</span>
+    </button>`).join("") : `<p class="sub">No routes picked yet.</p>`;
+  $("cards").querySelectorAll(".card").forEach(c => c.addEventListener("click", () => openDetail(c.dataset.route)));
+}
+function mapSVG(opts){
+  const {highlight, routes, all} = opts;
+  const nearest = Object.entries(STOPS).filter(([k]) => routes.some(r => ROUTES[r].stop===k)).sort((a,b)=>a[1].walk-b[1].walk)[0];
+  let decoys = "";
+  if (all){ let seed=7; const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280;}; for(let i=0;i<ALL_STOPS_FAKE;i++){ decoys += `<circle cx="${(15+rnd()*290).toFixed(0)}" cy="${(15+rnd()*215).toFixed(0)}" r="5" fill="#9aa8a4" opacity=".55"/>`; } }
+  const pins = Object.entries(STOPS).map(([k,s]) => {
+    const relevant = routes.some(r => ROUTES[r].stop===k);
+    const hl = highlight ? k===highlight : (nearest && k===nearest[0]);
+    if (!relevant && !all) return "";
+    return `<g opacity="${relevant? (hl?1:.55) : .35}"><circle cx="${s.x}" cy="${s.y}" r="${hl?13:9}" fill="${hl?"#0b6e4f":"#52625e"}" stroke="#fff" stroke-width="3"/></g>`;
+  }).join("");
+  return `<svg viewBox="0 0 320 240" role="img" aria-label="Map of nearby stops">
+    <rect width="320" height="240" fill="#eef3f1"/>
+    <rect x="95" y="85" width="120" height="55" rx="6" fill="#dbe7e2"/><text x="145" y="127" text-anchor="middle" font-size="12" fill="#52625e" font-family="sans-serif">DCU campus</text>
+    <path d="M0 160 H320" stroke="#fff" stroke-width="10"/><path d="M55 0 V240" stroke="#fff" stroke-width="10"/>
+    <text x="255" y="180" font-size="10" fill="#52625e" font-family="sans-serif">Collins Ave</text>
+    <text x="62" y="20" font-size="10" fill="#52625e" font-family="sans-serif">Ballymun Rd</text>
+    ${decoys}${pins}
+    <circle cx="195" cy="100" r="7" fill="#1a56db" stroke="#fff" stroke-width="3"/>
+    <rect x="0" y="216" width="320" height="24" fill="#ffffff" opacity=".85"/><circle cx="14" cy="228" r="6" fill="#0b6e4f"/><text x="25" y="232" font-size="11" fill="#0f1e1b" font-family="sans-serif">Nearest stop</text><circle cx="110" cy="228" r="5" fill="#52625e" opacity=".55"/><text x="120" y="232" font-size="11" fill="#0f1e1b" font-family="sans-serif">Other stops</text><circle cx="200" cy="228" r="5" fill="#1a56db"/><text x="210" y="232" font-size="11" fill="#0f1e1b" font-family="sans-serif">You</text>
+  </svg>`;
+}
+let detailRoute = null;
+function openDetail(r){ detailRoute = r; show("s-detail"); }
+function renderDetail(){
+  const r = detailRoute, R = ROUTES[r], S = STOPS[R.stop];
+  $("dTitle").innerHTML = `<span class="num">${r}</span> to ${R.dest}`;
+  $("dStop").textContent = `${S.name} · ${S.walk} min walk from you`;
+  $("dMap").innerHTML = mapSVG({highlight:R.stop, routes:[r]});
+  const ts = deps(r, now(), 5);
+  $("dDeps").innerHTML = ts.map(t => { const st = statusFor(t,S.walk); return `<li><span><b class="num">${hhmm(t)}</b> · <span class="num">${minsTo(t)}</span> min</span><span class="status st-${st.k}" style="margin:0;padding:2px 8px;font-size:13px">${IC[st.k]}${st.k==="go"?"You have time":st.txt}</span></li>`; }).join("");
+  let tt = ""; for (let t = 6*3600 + (R.first%R.every); t < 23*3600; t += R.every) tt += `<span>${hhmm(t)}</span>`;
+  $("dTTbody").innerHTML = tt;
+}
+function renderMap(){
+  $("bigMap").innerHTML = mapSVG({routes:myRoutes||[], all:showAll});
+  $("toggleAll").textContent = showAll ? "Show only my stops" : "Show all stops";
+  const stops = [...new Set((myRoutes||[]).map(r => ROUTES[r].stop))].sort((a,b)=>STOPS[a].walk-STOPS[b].walk);
+  $("mapList").innerHTML = stops.map(k => `<div class="result"><div class="top"><b>${STOPS[k].name}</b><span class="num">${STOPS[k].walk} min walk</span></div><div class="legs">${(myRoutes||[]).filter(r=>ROUTES[r].stop===k).map(r=>`<span class="leg bus">${r}</span>`).join("")}</div></div>`).join("");
+}
+function render(){
+  if (current==="s-now") renderNow();
+  if (current==="s-detail") renderDetail();
+  if (current==="s-map") renderMap();
+  const t = hhmm(now()); $("clock").textContent = t; $("sbTime").textContent = t;
+}
+setInterval(() => { if (current==="s-now"||current==="s-detail") render(); else { const t=hhmm(now()); $("clock").textContent=t; $("sbTime").textContent=t; } }, 1000);
+
+// ---------- onboarding ----------
+let picked = new Set();
+function renderPick(){
+  $("routePick").innerHTML = Object.keys(ROUTES).map(r => `<button class="rp" data-r="${r}" aria-pressed="${picked.has(r)}"><span class="route">${r}</span><span>${ROUTES[r].dest}<br><span class="sub" style="font-size:13px">${STOPS[ROUTES[r].stop].name.split(",")[0]}</span></span></button>`).join("");
+  $("routePick").querySelectorAll(".rp").forEach(b => b.addEventListener("click", () => { picked.has(b.dataset.r)?picked.delete(b.dataset.r):picked.add(b.dataset.r); renderPick(); }));
+  $("obDone").disabled = picked.size===0; $("obDone").style.opacity = picked.size? 1 : .5;
+}
+$("obDone").addEventListener("click", () => { if(!picked.size) return; myRoutes=[...picked]; store.set("routes",myRoutes); history=[]; show("s-now",false); });
+
+// ---------- origin sheet ----------
+const ORIGINS = ["DCU Glasnevin","DCU St Patrick's (Drumcondra)","Home · Drumcondra"];
+$("changeOrigin").addEventListener("click", () => {
+  $("originOpts").innerHTML = ORIGINS.map(o => `<button class="big" data-o="${o}" style="min-height:56px;font-size:17px">${o}${o===origin?' <small style="display:inline;margin-left:6px">(current)</small>':""}</button>`).join("");
+  $("originOpts").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { origin = b.dataset.o; $("originSheet").hidden = true; toast("Showing departures from "+origin); render(); }));
+  $("originSheet").hidden = false;
+});
+$("closeSheet").addEventListener("click", () => $("originSheet").hidden = true);
+$("openMap").addEventListener("click", () => { showAll=false; show("s-map"); });
+$("toggleAll").addEventListener("click", () => { showAll=!showAll; renderMap(); });
+
+// ---------- plan ----------
+const PLACES = {
+  "Heuston Station": [
+    {dur:41, legs:[["walk","5 min"],["bus","13"],["luas","Red line"],["walk","2 min"]], leaveIn:3, note:"Bus 13 to O'Connell St, Luas Red line to Heuston"},
+    {dur:48, legs:[["walk","2 min"],["bus","11"],["walk","4 min"],["luas","Red line"]], leaveIn:2, note:"Bus 11 to O'Connell St, Luas Red line to Heuston"}
+  ],
+  "Trinity College": [{dur:29, legs:[["walk","5 min"],["bus","13"],["walk","3 min"]], leaveIn:3, note:"Bus 13 to Nassau St"}],
+  "Dublin Airport": [{dur:27, legs:[["walk","6 min"],["bus","16"]], leaveIn:4, note:"Bus 16 northbound to Airport"}],
+  "IKEA Ballymun": [{dur:18, legs:[["walk","7 min"],["bus","9"],["walk","4 min"]], leaveIn:5, note:"Bus 9 to Ballymun Rd"}],
+  "Drumcondra": [{dur:16, legs:[["walk","5 min"],["bus","13"],["walk","2 min"]], leaveIn:3, note:"Bus 13 to Drumcondra Rd"},{dur:19, legs:[["walk","2 min"],["bus","11"],["walk","4 min"]], leaveIn:2, note:"Bus 11 to Drumcondra"}],
+  "DCU Glasnevin": [{dur:14, legs:[["walk","3 min"],["bus","11"],["walk","2 min"]], leaveIn:4, note:"Bus 11 to Collins Ave"}]
+};
+let planTo = null;
+document.querySelectorAll("[data-dest]").forEach(b => b.addEventListener("click", () => {
+  const d = b.dataset.dest;
+  if (d==="home"){ planTo="Drumcondra"; showResults("Home", "Leaving now"); }
+  else if (d==="campus"){ planTo="DCU Glasnevin"; showResults("Campus", "Leaving now"); }
+  else { $("fTo").value=""; $("sugg").hidden=true; show("s-search"); setTimeout(()=>$("fTo").focus(),50); }
+}));
+const MODES = ["Bus","Luas","DART","Rail","Walk","Bike"]; let modeOn = new Set(["Bus","Luas","DART","Rail","Walk"]);
+function renderModes(){ $("modes").innerHTML = MODES.map(m => `<button class="chip" aria-pressed="${modeOn.has(m)}" data-m="${m}">${m}</button>`).join(""); $("modes").querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{modeOn.has(c.dataset.m)?modeOn.delete(c.dataset.m):modeOn.add(c.dataset.m);renderModes();})); }
+renderModes();
+$("moreBtn").addEventListener("click", () => { const open = $("more").hidden; $("more").hidden = !open; $("moreBtn").setAttribute("aria-expanded", String(open)); $("moreBtn").textContent = open ? "Fewer options" : "More options"; });
+$("fWhen").addEventListener("change", () => $("timeWrap").hidden = $("fWhen").value==="now");
+$("fTo").addEventListener("input", () => {
+  const q = $("fTo").value.trim().toLowerCase();
+  const hits = Object.keys(PLACES).filter(p => q && p.toLowerCase().includes(q));
+  $("sugg").hidden = !hits.length;
+  $("sugg").innerHTML = hits.map(h => `<button data-p="${h}">${h}</button>`).join("");
+  $("sugg").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { $("fTo").value = b.dataset.p; $("sugg").hidden = true; }));
+});
+$("go").addEventListener("click", () => {
+  const v = $("fTo").value.trim(); const match = Object.keys(PLACES).find(p => p.toLowerCase()===v.toLowerCase()) || Object.keys(PLACES).find(p => v && p.toLowerCase().includes(v.toLowerCase()));
+  if (!match){ toast("Choose a destination from the list, for example Heuston Station"); return; }
+  planTo = match;
+  const w = $("fWhen").value, tm = $("fTime").value;
+  showResults(match, w==="now" ? "Leaving now" : (w==="by" ? "Arriving by "+tm : "Leaving after "+tm));
+});
+function showResults(title, sub){
+  $("rTitle").textContent = title; $("rSub").textContent = sub + " · from " + origin;
+  const by = sub.startsWith("Arriving by");
+  let opts = PLACES[planTo].filter(o => o.legs.every(l => l[0]!=="luas" || modeOn.has("Luas")));
+  if (!opts.length) opts = [];
+  $("rList").innerHTML = opts.length ? opts.map(o => {
+    let dep, arr;
+    if (by){ const [h,m] = $("fTime").value.split(":").map(Number); arr = h*3600+m*60 - 4*60; dep = arr - o.dur*60; }
+    else { dep = now() + o.leaveIn*60; arr = dep + o.dur*60; }
+    return `<div class="result"><div class="top"><b class="num" style="font-size:20px">${hhmm(dep)} → ${hhmm(arr)}</b><span class="num">${o.dur} min</span></div>
+      <div class="legs">${o.legs.map(l=>`<span class="leg ${l[0]}">${l[0]==="walk"?"Walk "+l[1]:l[1]}</span>`).join("<span aria-hidden='true'>›</span>")}</div>
+      <span class="meta">${o.note}${by?"":" · leave in "+o.leaveIn+" min"}</span></div>`; }).join("")
+    : `<p class="sub">No journeys with the transport you picked. Open More options and turn Luas back on.</p>`;
+  show("s-results");
+}
+
+// ---------- toast ----------
+let toastT; function toast(m){ $("toast").textContent=m; $("toast").hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>$("toast").hidden=true,2400); }
+
+// ---------- facilitator / measurement ----------
+let run = null; let errs = 0; let results = store.get("results", []);
+function openFac(){ $("fac").hidden=false; renderRes(); }
+let lp; const clk = $("clock");
+clk.addEventListener("pointerdown", e => { lp = setTimeout(openFac, 1000); });
+["pointerup","pointerleave","pointercancel"].forEach(ev => clk.addEventListener(ev, () => clearTimeout(lp)));
+document.addEventListener("keydown", e => { if ((e.key==="f"||e.key==="F") && document.activeElement.tagName!=="INPUT") openFac(); });
+$("facClose").addEventListener("click", () => $("fac").hidden=true);
+$("device").addEventListener("pointerdown", e => { if (run && !run.end && !e.target.closest("#fac") && e.target!==clk) run.taps++; }, true);
+$("startTask").addEventListener("click", () => {
+  run = {id:$("pid").value, task:$("task").value, start:Date.now(), taps:0}; errs=0; $("errN").textContent="0";
+  history=[]; show("s-now",false); $("fac").hidden=true; $("rec").hidden=false;
+});
+$("stopTask").addEventListener("click", () => { if(run && !run.end){ run.end=Date.now(); $("rec").hidden=true; } liveText(); });
+$("errPlus").addEventListener("click", () => { errs++; $("errN").textContent=errs; });
+$("errMinus").addEventListener("click", () => { errs=Math.max(0,errs-1); $("errN").textContent=errs; });
+function liveText(){ $("live").textContent = run ? `${run.task}: ${(((run.end||Date.now())-run.start)/1000).toFixed(1)} s, ${run.taps} taps` : "No task running"; }
+$("saveRow").addEventListener("click", () => {
+  if (!run){ toast("Start a task first"); return; }
+  if (!run.end) run.end = Date.now();
+  results.push({id:run.id, task:run.task, time:+((run.end-run.start)/1000).toFixed(1), taps:run.taps, errors:errs, outcome:$("outcome").value, ui:"prototype"});
+  store.set("results", results); run=null; $("rec").hidden=true; renderRes(); liveText();
+});
+function renderRes(){ liveText(); $("resBody").innerHTML = results.map(r=>`<tr><td>${r.id}</td><td>${r.task}</td><td class="num">${r.time}</td><td class="num">${r.taps}</td><td class="num">${r.errors}</td><td>${r.outcome}</td></tr>`).join("") || `<tr><td colspan="6">No results yet</td></tr>`; }
+$("copyCsv").addEventListener("click", () => {
+  const csv = "participant,task,ui,time_s,taps,errors,outcome\n" + results.map(r=>[r.id,r.task,r.ui,r.time,r.taps,r.errors,r.outcome].join(",")).join("\n");
+  const ta = $("csvOut"); ta.value = csv; ta.hidden = false;
+  try { navigator.clipboard.writeText(csv).then(()=>toast("CSV copied"), ()=>{ ta.select(); toast("Select and copy the text below"); }); } catch(e){ ta.select(); }
+});
+$("resetApp").addEventListener("click", () => { myRoutes=null; store.set("routes",null); picked=new Set(); origin="DCU Glasnevin"; simStart=Date.now(); history=[]; $("fac").hidden=true; renderPick(); show("s-onboard",false); });
+$("clearRes").addEventListener("click", () => { results=[]; store.set("results",results); renderRes(); });
+
+// ---------- boot ----------
+renderPick();
+// Direct links for screenshots / video: #now #detail #map #mapall #plan #search #more #results #onboard
+const h = location.hash.slice(1);
+if (h && h!=="onboard"){
+  if (!myRoutes || !myRoutes.length) myRoutes = ["11","13","4"];
+  if (h==="detail") { detailRoute="11"; show("s-detail",false); }
+  else if (h==="map" || h==="mapall") { showAll = h==="mapall"; show("s-map",false); }
+  else if (h==="plan") show("s-plan",false);
+  else if (h==="search" || h==="more") { show("s-search",false); $("fTo").value="Heuston Station"; if(h==="more"){ $("moreBtn").click(); $("fWhen").value="by"; $("timeWrap").hidden=false; } }
+  else if (h==="results") { planTo="Heuston Station"; $("fWhen").value="by"; showResults("Heuston Station","Arriving by 14:00"); }
+  else show("s-now",false);
+} else if (h==="onboard") show("s-onboard", false);
+else if (myRoutes && myRoutes.length) show("s-now", false); else show("s-onboard", false);
+})();
+</script>
+</body>
+</html>
